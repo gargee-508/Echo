@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ext-01",
+    "source": "OpenReview — LoRA: Low-Rank Adaptation of Large Language Models (ICLR 2022)",
+    "paper_text": "We propose Low-Rank Adaptation (LoRA), which freezes pretrained weights and injects trainable rank decomposition matrices into each Transformer layer, reducing trainable parameters for downstream tasks on GPT-3 175B while matching full fine-tuning quality on WikiSQL and MNLI.",
+    "review_text": "LoRA is a practical contribution for adapting huge LMs without full-weight updates. The rank-decomposition analysis in Section 3 is clear, but the paper should report wall-clock and memory on 175B with realistic batch sizes, not only parameter counts. Comparisons to adapters and prefix-tuning on MNLI need matched training steps. Weak accept pending clearer compute tables.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false,
+    "manual_rationale": "Substantive critique with method names and datasets; no abstract echo."
+  },
+  {
+    "id": "ext-02",
+    "source": "OpenReview — Training language models to follow instructions with human feedback (NeurIPS 2022)",
+    "paper_text": "We fine-tune GPT-3 with supervised learning on labeler demonstrations, then optimize with reinforcement learning from human feedback (RLHF). The resulting InstructGPT models are preferred by labelers over 175B GPT-3 on prompts from our API distribution.",
+    "review_text": "The RLHF pipeline is well motivated and the human preference evaluation is extensive. Missing: inter-labeler agreement statistics and a breakdown of failure modes on adversarial prompts. PPO stability details (KL coefficient sweep) should move from appendix to main text. Overall a strong empirical paper.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false,
+    "manual_rationale": "Domain-specific feedback on RLHF methodology; not generic praise."
+  },
+  {
+    "id": "ext-03",
+    "source": "OpenReview — An Image is Worth 16x16 Words (ICLR 2021)",
+    "paper_text": "We show that a pure Transformer applied directly to sequences of image patches attains excellent results on image classification. When pre-trained on large datasets and transferred to mid-size or small datasets, Vision Transformer (ViT) matches or exceeds ResNets while requiring substantially fewer computational resources to train.",
+    "review_text": "This paper is well written and presents a novel approach. The results are significant and the method is interesting. The authors demonstrate improvement over baselines. I recommend acceptance because the contribution is important for the field.",
+    "stylometry_suspicious": false,
+    "specificity_slop": true,
+    "manual_rationale": "Template praise without figures, metrics, or architectural specifics."
+  },
+  {
+    "id": "ext-04",
+    "source": "OpenReview — Scaling Laws for Neural Language Models (OpenAI, 2020)",
+    "paper_text": "We study empirical scaling laws for language model performance on the cross-entropy loss. Loss scales as a power-law with model size, dataset size, and compute used for training, with trends spanning seven orders of magnitude in the previous literature.",
+    "review_text": "We study empirical scaling laws for language model performance on the cross-entropy loss. Loss scales as a power-law with model size, dataset size, and compute used for training, with trends spanning seven orders of magnitude. The paper is well written and novel. I recommend accept because it says exactly this.",
+    "stylometry_suspicious": true,
+    "specificity_slop": true,
+    "manual_rationale": "Review repeats abstract phrasing; same-voice / copy-paste pattern."
+  },
+  {
+    "id": "ext-05",
+    "source": "OpenReview — FlashAttention (NeurIPS 2022)",
+    "paper_text": "FlashAttention is an IO-aware exact attention algorithm that uses tiling to reduce memory reads/writes between GPU HBM and SRAM, yielding speedups up to 3x on GPT-2 and 2.4x on long-range arena while remaining exact (no approximation).",
+    "review_text": "The IO analysis in Section 3.2 correctly identifies HBM bandwidth as the bottleneck for standard attention. Please add end-to-end training curves on GPT-2 large with FlashAttention versus Megatron-LM kernels, not only micro-benchmarks. The backward pass derivation in Appendix A has a sign error in equation 7 that should be fixed before camera-ready.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false,
+    "manual_rationale": "Technical review citing sections, hardware, and a concrete error."
+  }
+]

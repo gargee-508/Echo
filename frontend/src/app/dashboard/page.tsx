@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   CheckCircle,
   TrendingUp,
-  Eye
+  Eye,
+  BarChart3,
 } from "lucide-react";
 
 import Report, { type EchoReportData } from "../../components/Report";
@@ -78,7 +79,14 @@ export default function Dashboard() {
       void loadAnalytics();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.detail || "An error occurred connecting to the ECHO backend.");
+        const detail = err.response?.data?.detail;
+        const message =
+          typeof detail === "string"
+            ? detail
+            : typeof detail === "object" && detail !== null && "message" in detail
+              ? String((detail as { message?: string }).message)
+              : "An error occurred connecting to the ECHO backend.";
+        setError(message);
       } else {
         setError("An unexpected error occurred.");
       }
@@ -165,6 +173,17 @@ export default function Dashboard() {
             transition: "all 0.2s"
           }} className="hover:text-primary">
             <Database size={20} /> Explorer
+          </Link>
+          <Link href="/validation" style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "8px", 
+            color: "var(--text-muted)", 
+            textDecoration: "none",
+            fontSize: "0.9rem"
+          }}>
+            <BarChart3 size={16} />
+            Validation
           </Link>
           <Link href="/sources" style={{ 
             display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", 

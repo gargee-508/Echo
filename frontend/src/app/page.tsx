@@ -142,6 +142,7 @@ function Navbar() {
       <nav className="nav-links" aria-label="Primary navigation">
         <Link href="#intelligence">Docs</Link>
         <Link href="/dashboard">Dashboard</Link>
+        <Link href="/validation">Validation</Link>
         <Link href="/dashboard?q=Attention%20Is%20All%20You%20Need&auto=1">Reports</Link>
         <Link href="#findings">About</Link>
       </nav>

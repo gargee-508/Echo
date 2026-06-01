@@ -206,11 +206,11 @@ export default function Report({ data }: ReportProps) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="premium-report">
-      {data.data_state === "mocked" && (
+      {data.data_state === "curated_fixture" && (
         <div style={{
-          background: "rgba(245, 158, 11, 0.08)",
-          border: "1px solid rgba(245, 158, 11, 0.25)",
-          color: "#f59e0b",
+          background: "rgba(139, 92, 246, 0.08)",
+          border: "1px solid rgba(139, 92, 246, 0.25)",
+          color: "#a78bfa",
           padding: "16px 20px",
           borderRadius: "12px",
           marginBottom: "24px",
@@ -219,36 +219,30 @@ export default function Report({ data }: ReportProps) {
           alignItems: "center",
           gap: "12px",
           fontWeight: 500,
-          boxShadow: "0 4px 20px rgba(245, 158, 11, 0.05)"
         }}>
-          <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+          <Fingerprint size={20} style={{ flexShrink: 0 }} />
           <div>
-            <strong style={{ textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.05em", display: "block", marginBottom: "2px", color: "#f59e0b" }}>⚠️ Demo Mode</strong>
-            <span style={{ opacity: 0.9 }}>No live peer-review data was found for this query on OpenReview or arXiv. Synthetic forensic data generated for demonstration.</span>
+            <strong style={{ textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.05em", display: "block", marginBottom: "2px" }}>Reference validation set</strong>
+            <span style={{ opacity: 0.9 }}>Reviews from the bundled labeled dataset with known patterns (copy-paste abstract, generic slop). Scores are calibrated against this reference set.</span>
           </div>
         </div>
       )}
 
-      {data.data_state === "arxiv_generated" && (
+      {data.data_state === "live" && (
         <div style={{
-          background: "rgba(6, 182, 212, 0.08)",
-          border: "1px solid rgba(6, 182, 212, 0.25)",
-          color: "#06b6d4",
-          padding: "16px 20px",
+          background: "rgba(34, 197, 94, 0.08)",
+          border: "1px solid rgba(34, 197, 94, 0.25)",
+          color: "#4ade80",
+          padding: "12px 16px",
           borderRadius: "12px",
           marginBottom: "24px",
-          fontSize: "0.95rem",
+          fontSize: "0.9rem",
           display: "flex",
           alignItems: "center",
-          gap: "12px",
-          fontWeight: 500,
-          boxShadow: "0 4px 20px rgba(6, 182, 212, 0.05)"
+          gap: "10px",
         }}>
-          <BrainCircuit size={20} style={{ flexShrink: 0 }} />
-          <div>
-            <strong style={{ textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.05em", display: "block", marginBottom: "2px", color: "#06b6d4" }}>ℹ️ Preprint Mode</strong>
-            <span style={{ opacity: 0.9 }}>ArXiv preprints lack official peer reviews. Peer reviews have been synthesized to demonstrate stylometry and specificity engines.</span>
-          </div>
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>Live OpenReview review text — venue-wide collusion scan enabled when available.</span>
         </div>
       )}
 

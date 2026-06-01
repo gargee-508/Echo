@@ -1,6 +1,6 @@
 from scipy.spatial.distance import cosine
 from models.embedder import get_embedder
-import numpy as np
+from analyzers.config import MIN_REVIEW_CHARS, STYLOMETRY_SIMILARITY_THRESHOLD
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -26,16 +26,13 @@ def analyze_stylometry(paper_text: str, reviews: list[dict]) -> dict:
     
     for review in reviews:
         review_text = review.get("text", "")
-        if len(review_text) < 50:
+        if len(review_text) < MIN_REVIEW_CHARS:
             continue
             
         review_embedding = embedder.encode([review_text])[0]
         
-        # Calculate cosine similarity (1 - cosine distance)
         similarity = 1 - cosine(paper_embedding, review_embedding)
-        
-        # A threshold > 0.8 is generally highly suspicious for different authors/reviewers
-        is_suspicious = bool(similarity > 0.8)
+        is_suspicious = bool(similarity > STYLOMETRY_SIMILARITY_THRESHOLD)
         if is_suspicious:
             suspicious_count += 1
             

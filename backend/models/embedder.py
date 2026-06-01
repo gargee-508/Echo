@@ -15,7 +15,7 @@ class Embedder:
         if cls._instance is None:
             cls._instance = super(Embedder, cls).__new__(cls)
             
-            # Resilient production/low-resource bypass:
+            # Production / low-resource bypass:
             # Force local lexical fallback to avoid PyTorch imports and heavy model downloads
             # that cause Out-Of-Memory (OOM) crashes and 10-minute timeouts on Render Free tier.
             if os.getenv("RENDER") or os.getenv("USE_FALLBACK_EMBEDDER") == "true":
@@ -58,6 +58,26 @@ class Embedder:
 
 def get_embedder():
     return Embedder()
+
+
+def get_embedder_mode() -> dict[str, str]:
+    """Report which embedding backend is active (for benchmark / health transparency)."""
+    embedder = get_embedder()
+    if embedder.using_fallback:
+        return {
+            "mode": "lexical_fallback",
+            "model": "blake2b hashed bag-of-words (384-d)",
+            "note": (
+                "Render and USE_FALLBACK_EMBEDDER=true use the lightweight embedder. "
+                "Local runs may use sentence-transformers all-MiniLM-L6-v2; "
+                "stylometry scores can differ between environments."
+            ),
+        }
+    return {
+        "mode": "sentence_transformer",
+        "model": "all-MiniLM-L6-v2",
+        "note": "Full semantic embeddings active.",
+    }
 
 if __name__ == "__main__":
     emb = get_embedder()

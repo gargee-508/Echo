@@ -2,6 +2,8 @@ import openreview
 import logging
 from typing import Dict, Any, List
 
+from analyzers.config import VENUE_COLLUSION_PAPER_LIMIT
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -20,12 +22,11 @@ def fetch_paper_and_reviews(venue_id: str, paper_title: str) -> Dict[str, Any]:
     
     logger.info(f"Searching for paper '{paper_title}' in venue '{venue_id}'")
     
-    # --- HACKATHON DEMO MOCK DATA ---
-    # Intercept specific searches to guarantee rich data for the analyzers to demonstrate
+    # Reference papers with labeled reviews for local validation and offline testing
     if "denoising diffusion" in paper_title.lower():
         title_to_use = "Denoising Diffusion Probabilistic Models"
         abstract_to_use = "We present high quality image synthesis results using diffusion probabilistic models, a class of latent variable models inspired by considerations from non-equilibrium thermodynamics. Our best results are obtained by training on a weighted variational bound designed according to a novel connection between diffusion models and denoising score matching with Langevin dynamics."
-        logger.info(f"Serving Hackathon Demo Data for: {title_to_use}")
+        logger.info(f"Serving reference validation set for: {title_to_use}")
         return {
             "paper_id": "demo_ddpm",
             "title": title_to_use,
@@ -62,7 +63,7 @@ def fetch_paper_and_reviews(venue_id: str, paper_title: str) -> Dict[str, Any]:
         if "attention" in title_to_use.lower():
             abstract_to_use = "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely."
             
-        logger.info(f"Serving Hackathon Demo Data for: {title_to_use}")
+        logger.info(f"Serving reference validation set for: {title_to_use}")
         return {
             "paper_id": "demo_123",
             "title": title_to_use,
@@ -145,6 +146,69 @@ def fetch_paper_and_reviews(venue_id: str, paper_title: str) -> Dict[str, Any]:
     except openreview.OpenReviewException as e:
         logger.error(f"OpenReview API Error: {e}")
         return {"error": str(e)}
+
+
+def fetch_venue_collusion_context(
+    venue_id: str, limit: int | None = None
+) -> Dict[str, Any]:
+    """
+    Pull multiple submissions and reviewer signatures from a venue so collusion
+    detection can find cross-paper cycles (A reviews B's paper, B reviews A's).
+    """
+    limit = limit or VENUE_COLLUSION_PAPER_LIMIT
+    client = get_openreview_client()
+    papers: List[Dict[str, Any]] = []
+    all_reviews: List[Dict[str, Any]] = []
+
+    try:
+        submissions = client.get_notes(
+            invitation=f"{venue_id}/-/Submission",
+            limit=limit,
+        )
+        for submission in submissions:
+            paper_id = submission.id
+            title = submission.content.get("title", {}).get("value", "")
+            authors = submission.content.get("authors", {}).get("value", []) or []
+            abstract = submission.content.get("abstract", {}).get("value", "")
+            papers.append(
+                {
+                    "id": paper_id,
+                    "title": title,
+                    "abstract": abstract,
+                    "authors": authors,
+                }
+            )
+            notes = client.get_notes(forum=paper_id)
+            for note in notes:
+                if "Review" not in note.invitation and "Official_Review" not in note.invitation:
+                    continue
+                content = note.content
+                text = (
+                    content.get("review", {}).get("value", "")
+                    or content.get("main_review", {}).get("value", "")
+                    or ""
+                )
+                if len(text) < 30:
+                    continue
+                all_reviews.append(
+                    {
+                        "id": note.id,
+                        "paper_id": paper_id,
+                        "signatures": note.signatures,
+                        "text": text,
+                    }
+                )
+        return {
+            "papers": papers,
+            "reviews": all_reviews,
+            "venue_id": venue_id,
+            "fetched_papers": len(papers),
+            "fetched_reviews": len(all_reviews),
+        }
+    except openreview.OpenReviewException as exc:
+        logger.error("Venue collusion fetch failed: %s", exc)
+        return {"error": str(exc), "papers": [], "reviews": []}
+
 
 if __name__ == "__main__":
     # Test execution

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -10,11 +10,21 @@ import requests
 import urllib.request
 import uuid
 
-from fetchers.openreview import fetch_paper_and_reviews
+from fetchers.openreview import fetch_paper_and_reviews, fetch_venue_collusion_context
 from fetchers.arxiv import fetch_arxiv_metadata
+from analyzers.config import (
+    SPECIFICITY_SLOP_THRESHOLD,
+    STYLOMETRY_SIMILARITY_THRESHOLD,
+)
 from analyzers.stylometry import analyze_stylometry
 from analyzers.specificity import analyze_specificity
 from analyzers.collusion import build_collusion_graph
+from evaluation.benchmark import (
+    run_external_spotcheck,
+    run_full_validation_report,
+    run_labeled_benchmark,
+)
+from models.embedder import get_embedder_mode
 from storage import get_stats, init_db, list_recent_analyses, save_analysis
 
 try:
@@ -30,20 +40,28 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="ECHO API",
     description="Peer Review Manipulation Detector",
-    version="1.0.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 class AnalyzeRequest(BaseModel):
     query: str
     venue_id: str = "ICLR.cc/2024/Conference"
+    include_venue_collusion: bool = True
+
+
+def _is_curated_fixture(paper_id: str | None) -> bool:
+    if not paper_id:
+        return False
+    return str(paper_id).startswith("demo_")
 
 
 def _build_risk_assessment(
@@ -91,6 +109,7 @@ def _build_risk_assessment(
     recommendations = [
         "Run manual spot-check on flagged reviews and compare with reviewer history.",
         "Escalate suspicious cases to area chairs for verification.",
+        "ECHO is a triage tool — not an automated accept/reject verdict.",
     ]
     if verdict == "High Risk":
         recommendations.append(
@@ -112,7 +131,7 @@ def _build_risk_assessment(
 
 @app.get("/")
 def read_root():
-    return {"status": "ECHO Backend is running", "version": "1.0.0"}
+    return {"status": "ECHO Backend is running", "version": "1.2.0"}
 
 
 @app.on_event("startup")
@@ -120,107 +139,124 @@ def startup_event():
     init_db()
 
 
+@app.get("/api/benchmark")
+def get_benchmark_report(
+    sweep: bool = Query(False, description="Include specificity threshold grid search"),
+    full: bool = Query(
+        True,
+        description="Include held-out spot-check, embedder mode, and demo notes",
+    ),
+):
+    """Run labeled-set evaluation; full=true adds external spot-check and embedder info."""
+    if full:
+        return run_full_validation_report(include_threshold_sweep=sweep)
+    return run_labeled_benchmark(include_threshold_sweep=sweep)
+
+
+@app.get("/api/benchmark/spotcheck")
+def get_spotcheck_report():
+    """Held-out OpenReview-style reviews (manual labels, not used for calibration)."""
+    return run_external_spotcheck()
+
+
 @app.post("/api/analyze")
 def analyze_paper(request: AnalyzeRequest):
     query = request.query
     venue_id = request.venue_id
-    
-    logger.info(f"Analyzing query: {query}")
-    
-    # 1. Fetch paper and reviews from OpenReview
+
+    logger.info("Analyzing query: %s", query)
+
     or_data = fetch_paper_and_reviews(venue_id, query)
     data_state = "live"
-    
+
     if "error" in or_data:
         logger.warning("Paper not found on OpenReview, trying arXiv...")
         arxiv_data = fetch_arxiv_metadata(query)
-        
+
         if "error" in arxiv_data:
-            # Resilient Hackathon Demo fallback: generate a smart mock dataset using the query as the title
-            # so the dashboard never shows an error and always demonstrates full analytical features.
-            logger.warning("Paper not found on arXiv. Generating a smart demo mock dataset instead...")
-            data_state = "mocked"
-            or_data = {
-                "paper_id": "demo_resilient_mock",
-                "title": query,
-                "abstract": f"This research presents a novel architecture and detailed evaluation for {query}. We outline the primary mechanisms, establish safety bounds, and compare performance against recent baselines. Our experiments show state-of-the-art results across several benchmarks.",
-                "authors": ["Dr. Alexis Vance", "Dr. Gordon Freeman"],
-                "reviews": [
-                    {
-                        "id": "res_rev1",
-                        "signatures": ["Reviewer 1"],
-                        "text": f"The authors present a solid contribution. The technical framework proposed for {query} is elegant and well-evaluated. However, the limitation section is somewhat brief and could discuss scaling issues in more detail. Overall, I recommend acceptance.",
-                        "rating": "8: Accept",
-                        "confidence": "4: Confident"
-                    },
-                    {
-                        "id": "res_rev2",
-                        "signatures": ["Reviewer 2"],
-                        "text": f"This is a well-structured paper that addresses core problems in {query}. The qualitative evaluations are strong and the results show significant improvement. The paper is easy to read and technically sound.",
-                        "rating": "7: Accept",
-                        "confidence": "3: Somewhat Confident"
-                    },
-                    {
-                        "id": "res_rev3",
-                        "signatures": ["Reviewer 3"],
-                        "text": f"The methodology is novel and the authors provide extensive empirical proof. While {query} is a challenging topic, this work succeeds in providing clear insights and actionable findings.",
-                        "rating": "8: Accept",
-                        "confidence": "4: Confident"
-                    }
-                ]
-            }
-        else:
-            # Upgrade arXiv paper metadata with realistic, tailored reviews so the stylometry,
-            # specificity, and collusion graph analyzers have rich data to perform a full, gorgeous analysis.
-            logger.info("Upgrading arXiv paper with generated reviews for a complete analysis...")
-            data_state = "arxiv_generated"
-            or_data = {
-                "paper_id": arxiv_data.get("id", "arxiv_123"),
-                "title": arxiv_data.get("title", query),
-                "abstract": arxiv_data.get("abstract", "Abstract not available."),
-                "authors": arxiv_data.get("authors", ["Unknown Author"]),
-                "reviews": [
-                    {
-                        "id": "upg_rev1",
-                        "signatures": ["Reviewer 1"],
-                        "text": f"This paper is a strong contribution to the literature on {arxiv_data.get('title')}. The technical approach is sound, the experiments are thorough, and the conclusions are well-supported.",
-                        "rating": "8: Accept",
-                        "confidence": "4: Confident"
-                    },
-                    {
-                        "id": "upg_rev2",
-                        "signatures": ["Reviewer 2"],
-                        "text": f"A very interesting read. The authors present a solid evaluation of {arxiv_data.get('title')}. The findings are highly relevant to current research trends.",
-                        "rating": "7: Accept",
-                        "confidence": "3: Somewhat Confident"
-                    },
-                    {
-                        "id": "upg_rev3",
-                        "signatures": ["Reviewer 3"],
-                        "text": f"The quality of the presentation is excellent. The results represent a meaningful advancement in the study of {arxiv_data.get('title')}.",
-                        "rating": "8: Accept",
-                        "confidence": "4: Confident"
-                    }
-                ]
-            }
-        
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "message": (
+                        "No peer reviews found for this query on OpenReview or arXiv. "
+                        "ECHO only runs forensic analysis on real review text. "
+                        "Try an example query: 'Attention Is All You Need', "
+                        "'Denoising Diffusion Probabilistic Models', or "
+                        "'Position: The role of open source in AI'."
+                    ),
+                    "data_state": "unavailable",
+                },
+            )
+
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": (
+                    "ArXiv preprints do not include official peer reviews. "
+                    "Search the same title on OpenReview or use a reference example from the README."
+                ),
+                "data_state": "preprint_only",
+                "paper": {
+                    "title": arxiv_data.get("title", query),
+                    "abstract": arxiv_data.get("abstract", ""),
+                    "authors": arxiv_data.get("authors", []),
+                },
+            },
+        )
+
+    paper_id = or_data.get("paper_id") or or_data.get("id")
+    if _is_curated_fixture(paper_id):
+        data_state = "curated_fixture"
+
     paper_title = or_data.get("title", "")
     abstract = or_data.get("abstract", "")
     reviews = or_data.get("reviews", [])
+
+    if not reviews:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": (
+                    "Paper metadata was found but no review text is available. "
+                    "Analysis requires at least one official review."
+                ),
+                "data_state": "no_reviews",
+                "paper": {
+                    "title": paper_title,
+                    "abstract": abstract,
+                    "authors": or_data.get("authors", []),
+                },
+            },
+        )
+
     paper_text = paper_title + " " + abstract
-    
-    # 2. Run Analyzers
+
     stylometry_results = analyze_stylometry(paper_text, reviews)
     specificity_results = analyze_specificity(reviews, abstract)
-    
-    # Inject paper_id into reviews for the graph builder
+
     for rev in reviews:
         if "paper_id" not in rev:
-            rev["paper_id"] = or_data.get("paper_id") or or_data.get("id") or "unknown"
-            
-    # We build a graph based on this single paper for now, 
-    # but in a real scenario we'd query the whole venue.
-    collusion_graph = build_collusion_graph([or_data], reviews)
+            rev["paper_id"] = paper_id or "unknown"
+
+    papers_for_graph = [
+        {
+            "id": paper_id,
+            "title": paper_title,
+            "abstract": abstract,
+            "authors": or_data.get("authors", []),
+        }
+    ]
+    reviews_for_graph = list(reviews)
+
+    if request.include_venue_collusion and data_state == "live":
+        venue_ctx = fetch_venue_collusion_context(venue_id)
+        if venue_ctx.get("papers"):
+            papers_for_graph = venue_ctx["papers"]
+            reviews_for_graph = venue_ctx["reviews"]
+            if not any(r.get("paper_id") == paper_id for r in reviews_for_graph):
+                reviews_for_graph.extend(reviews)
+
+    collusion_graph = build_collusion_graph(papers_for_graph, reviews_for_graph)
 
     risk_assessment = _build_risk_assessment(
         stylometry_results, specificity_results, collusion_graph
@@ -229,6 +265,7 @@ def analyze_paper(request: AnalyzeRequest):
     response = {
         "status": "success",
         "data_state": data_state,
+        "analysis_valid": True,
         "paper": {
             "title": paper_title,
             "abstract": abstract,
@@ -240,6 +277,11 @@ def analyze_paper(request: AnalyzeRequest):
             "collusion": collusion_graph,
         },
         "risk_assessment": risk_assessment,
+        "thresholds": {
+            "stylometry_cosine": STYLOMETRY_SIMILARITY_THRESHOLD,
+            "specificity_composite": SPECIFICITY_SLOP_THRESHOLD,
+            "calibration": "See GET /api/benchmark for labeled-set metrics",
+        },
     }
 
     save_analysis(
@@ -272,12 +314,18 @@ def get_analysis_stats():
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "service": "echo-backend"}
+    return {
+        "status": "ok",
+        "service": "echo-backend",
+        "version": "1.2.0",
+        "embedder": get_embedder_mode(),
+    }
 
 
 @app.get("/api/sources/health")
 def sources_health_check():
     import os
+
     os.environ["HTTP_PROXY"] = ""
     os.environ["HTTPS_PROXY"] = ""
     os.environ["http_proxy"] = ""
@@ -285,7 +333,11 @@ def sources_health_check():
     statuses: dict[str, Any] = {}
 
     try:
-        response = requests.get("https://api2.openreview.net/notes", timeout=8, proxies={"http": "", "https": ""})
+        response = requests.get(
+            "https://api2.openreview.net/notes",
+            timeout=8,
+            proxies={"http": "", "https": ""},
+        )
         reachable = response.status_code in {200, 400, 401, 403}
         statuses["openreview"] = {
             "status": "connected" if reachable else "degraded",
@@ -315,7 +367,7 @@ def sources_health_check():
             "https://api.semanticscholar.org/graph/v1/paper/search",
             params={"query": "transformer", "limit": 1, "fields": "title"},
             timeout=8,
-            proxies={"http": "", "https": ""}
+            proxies={"http": "", "https": ""},
         )
         if response.status_code == 200:
             status = "connected"
@@ -370,6 +422,7 @@ def export_pdf_report(payload: dict[str, Any]):
         "filename": f"echo-report-{uuid.uuid4().hex[:8]}.pdf",
         "content_base64": base64.b64encode(body).decode("utf-8"),
     }
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "g01",
+    "paper_text": "We propose a Transformer architecture based solely on attention mechanisms, dispensing with recurrence. Experiments on WMT 2014 English-German and English-French translation show BLEU improvements over RNN baselines while training faster on 8 P100 GPUs.",
+    "review_text": "The multi-head attention design is clearly motivated, but the paper under-reports training instability on long sequences (>512 tokens). The WMT14 en-de numbers should include confidence intervals. The positional encoding ablation in Appendix B is helpful; expanding it to document-level MT would strengthen the claims.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g02",
+    "paper_text": "Diffusion probabilistic models synthesize images by reversing a Markov noise process. We train on a weighted variational bound linked to denoising score matching with Langevin dynamics, achieving FID 3.17 on CIFAR-10.",
+    "review_text": "Sampling requires hundreds of forward passes per image; the authors acknowledge this but do not compare against DDIM or progressive distillation baselines on ImageNet 64x64. The thermodynamic interpretation in Section 2 is elegant yet hand-wavy—cite Sohl-Dickstein 2015 more precisely when defining the reverse kernel.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g03",
+    "paper_text": "BERT pre-trains deep bidirectional representations using masked language modeling and next sentence prediction on BooksCorpus and English Wikipedia, then fine-tunes on GLUE, SQuAD, and NER.",
+    "review_text": "Masking 15% of tokens is standard, but the ablation showing NSP contributes only +0.7 on QNLI should be moved into the main text. Concern: fine-tuning hyperparameters (batch 32, lr 5e-5) are tuned on dev sets—report held-out sweep protocol. The WordPiece vocabulary size (30k) affects rare entity F1 on CoNLL-2003.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g04",
+    "paper_text": "We release a 7B parameter open-weight LLM trained on 2T tokens with grouped-query attention and rotary embeddings, evaluated on MMLU, HumanEval, and GSM8K.",
+    "review_text": "The contamination audit for MMLU is thin—provide n-gram overlap statistics against training dumps. HumanEval pass@1 improves with temperature 0.2, but the paper only reports pass@10. Safety red-teaming for jailbreak prompts is limited to 200 hand-written attacks; scale to HarmBench.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g05",
+    "paper_text": "Graph neural networks with message passing aggregate neighbor features for semi-supervised node classification on Cora, Citeseer, and Pubmed citation networks.",
+    "review_text": "The two-layer GCN oversmooths on Pubmed when depth exceeds 3—include the Zhang et al. residual GCN baseline. Runtime on OGBN-Arxiv is missing; reviewers need wall-clock and peak GPU memory. Theorem 1 assumes symmetric normalized adjacency; discuss directed graphs.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g06",
+    "paper_text": "Federated learning with differential privacy (epsilon=8) trains image classifiers across 100 clients with non-IID label skew on FEMNIST.",
+    "review_text": "Privacy accounting uses RDP but the conversion to (epsilon, delta) omits composition across communication rounds—clarify in Table 4. Client dropout at 30% hurts convergence; compare with FedProx and SCAFFOLD. The threat model excludes malicious aggregators; state this limitation upfront.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g07",
+    "paper_text": "Vision transformers patchify images into 16x16 tokens and apply standard transformer encoders, matching ResNet-50 accuracy on ImageNet-1k with pre-training on JFT-300M.",
+    "review_text": "Positional embedding interpolation for higher resolutions is under-explained—add diagrams for 384x384 fine-tuning. Data augmentation differs from DeiT; align pipelines before claiming ViT superiority. Throughput at batch 1024 on A100 should be reported for fair deployment comparison.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g08",
+    "paper_text": "Reinforcement learning from human feedback aligns a 13B chat model using pairwise preference data collected from crowdworkers on Helpful and Harmless axes.",
+    "review_text": "Inter-rater agreement (Krippendorff alpha) on preference labels is not reported. The PPO KL penalty coefficient sweep is buried in appendix—surface best value in Section 5.2. Evaluate toxicity on RealToxicityPrompts with nucleus sampling, not greedy decode.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g09",
+    "paper_text": "Neural radiance fields represent scenes as continuous volumetric functions optimized via differentiable rendering from sparse multi-view photos.",
+    "review_text": "Training per scene for 12 hours limits scalability; discuss Instant-NGP hash encodings as a baseline. Specular highlights on synthetic Blender scenes do not transfer to indoor ScanNet captures—show failure cases. Camera pose errors are assumed negligible; quantify sensitivity.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "g10",
+    "paper_text": "A survey of self-supervised learning objectives for vision: contrastive, non-contrastive, and masked image modeling, with benchmarks on ImageNet linear probe and k-NN.",
+    "review_text": "The taxonomy omits distillation-based methods (DINOv2). Table 2 mixes pre-training datasets (ImageNet-1k vs 21k)—normalize before ranking methods. Include compute FLOPs per method; otherwise SimCLR appears unfairly weak. Update with 2024 MIM papers before camera-ready.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "s01",
+    "paper_text": "We propose a Transformer architecture based solely on attention mechanisms, dispensing with recurrence. Experiments on WMT 2014 English-German and English-French translation show BLEU improvements over RNN baselines while training faster on 8 P100 GPUs.",
+    "review_text": "We propose a Transformer architecture based solely on attention mechanisms, dispensing with recurrence. Experiments on WMT 2014 English-German and English-French translation show BLEU improvements over RNN baselines while training faster on 8 P100 GPUs. Therefore I recommend acceptance.",
+    "stylometry_suspicious": true,
+    "specificity_slop": true
+  },
+  {
+    "id": "s02",
+    "paper_text": "Diffusion probabilistic models synthesize images by reversing a Markov noise process. We train on a weighted variational bound linked to denoising score matching with Langevin dynamics, achieving FID 3.17 on CIFAR-10.",
+    "review_text": "The authors present high quality image synthesis results using diffusion probabilistic models. The paper is well written and novel. The training on a weighted variational bound is technically sound. I recommend acceptance because of its significant impact.",
+    "stylometry_suspicious": false,
+    "specificity_slop": true
+  },
+  {
+    "id": "s03",
+    "paper_text": "BERT pre-trains deep bidirectional representations using masked language modeling and next sentence prediction on BooksCorpus and English Wikipedia, then fine-tunes on GLUE, SQuAD, and NER.",
+    "review_text": "The paper is well written and novel. It presents interesting results. The authors show that the proposed method is good. I recommend accepting the paper because it is well written and novel. Thank you.",
+    "stylometry_suspicious": false,
+    "specificity_slop": true
+  },
+  {
+    "id": "s04",
+    "paper_text": "We release a 7B parameter open-weight LLM trained on 2T tokens with grouped-query attention and rotary embeddings, evaluated on MMLU, HumanEval, and GSM8K.",
+    "review_text": "We release a 7B parameter open-weight LLM trained on 2T tokens with grouped-query attention and rotary embeddings, evaluated on MMLU, HumanEval, and GSM8K. The work is excellent and should be accepted without revision.",
+    "stylometry_suspicious": true,
+    "specificity_slop": true
+  },
+  {
+    "id": "s05",
+    "paper_text": "Graph neural networks with message passing aggregate neighbor features for semi-supervised node classification on Cora, Citeseer, and Pubmed citation networks.",
+    "review_text": "This is a good paper with a solid contribution. The methodology is sound and the experiments demonstrate improvement. The writing is clear. Accept.",
+    "stylometry_suspicious": false,
+    "specificity_slop": true
+  },
+  {
+    "id": "s06",
+    "paper_text": "Federated learning with differential privacy (epsilon=8) trains image classifiers across 100 clients with non-IID label skew on FEMNIST.",
+    "review_text": "Federated learning with differential privacy (epsilon=8) trains image classifiers across 100 clients with non-IID label skew on FEMNIST. Overall the paper should be accepted.",
+    "stylometry_suspicious": true,
+    "specificity_slop": true
+  },
+  {
+    "id": "s07",
+    "paper_text": "Vision transformers patchify images into 16x16 tokens and apply standard transformer encoders, matching ResNet-50 accuracy on ImageNet-1k with pre-training on JFT-300M.",
+    "review_text": "The paper proposes a novel method and shows significant results. The approach is interesting and well-motivated. However there are some limitations. Overall I lean accept.",
+    "stylometry_suspicious": false,
+    "specificity_slop": true
+  },
+  {
+    "id": "s08",
+    "paper_text": "Reinforcement learning from human feedback aligns a 13B chat model using pairwise preference data collected from crowdworkers on Helpful and Harmless axes.",
+    "review_text": "Reinforcement learning from human feedback aligns a 13B chat model using pairwise preference data collected from crowdworkers on Helpful and Harmless axes. The contribution is important for the field.",
+    "stylometry_suspicious": true,
+    "specificity_slop": true
+  },
+  {
+    "id": "s09",
+    "paper_text": "Neural radiance fields represent scenes as continuous volumetric functions optimized via differentiable rendering from sparse multi-view photos.",
+    "review_text": "Great paper. Well written. Novel. Significant contribution. Recommend accept. Thank you authors for this interesting work.",
+    "stylometry_suspicious": false,
+    "specificity_slop": true
+  },
+  {
+    "id": "s10",
+    "paper_text": "A survey of self-supervised learning objectives for vision: contrastive, non-contrastive, and masked image modeling, with benchmarks on ImageNet linear probe and k-NN.",
+    "review_text": "A survey of self-supervised learning objectives for vision: contrastive, non-contrastive, and masked image modeling, with benchmarks on ImageNet linear probe and k-NN. This survey should be accepted.",
+    "stylometry_suspicious": true,
+    "specificity_slop": true
+  },
+  {
+    "id": "g11",
+    "paper_text": "Protein structure prediction with equivariant transformers achieves CASP14 competitive RMSD on TBM and FM targets using MSAs from UniRef90.",
+    "review_text": "The Evoformer triangle attention is O(N^3) in sequence length—report runtime for 900-residue targets. MSA depth ablation stops at 64 sequences; show 256 for hard FM targets. Compare AF2 vs RoseTTAFold on CASP14 z-score, not only RMSD.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "s11",
+    "paper_text": "Protein structure prediction with equivariant transformers achieves CASP14 competitive RMSD on TBM and FM targets using MSAs from UniRef90.",
+    "review_text": "The paper is technically sound and the results are strong. The authors demonstrate significant improvement. I recommend acceptance.",
+    "stylometry_suspicious": false,
+    "specificity_slop": true
+  },
+  {
+    "id": "g12",
+    "paper_text": "Mixture-of-experts sparsely activate 8 of 64 feed-forward experts per token in a 1.2T parameter language model, reducing FLOPs versus dense 175B GPT-3.",
+    "review_text": "Expert load balancing loss prevents collapse but Figure 7 shows 3 experts receive 40% of tokens—discuss fairness. All experiments use English-only C4; multilingual routing analysis is absent. Compare with Switch Transformer baseline at matched active parameters.",
+    "stylometry_suspicious": false,
+    "specificity_slop": false
+  },
+  {
+    "id": "s12",
+    "paper_text": "Mixture-of-experts sparsely activate 8 of 64 feed-forward experts per token in a 1.2T parameter language model, reducing FLOPs versus dense 175B GPT-3.",
+    "review_text": "Mixture-of-experts sparsely activate 8 of 64 feed-forward experts per token in a 1.2T parameter language model, reducing FLOPs versus dense 175B GPT-3. Accept.",
+    "stylometry_suspicious": true,
+    "specificity_slop": true
+  }
+]

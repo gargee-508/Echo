@@ -149,14 +149,65 @@ Next.js proxies requests: `/api/*` resolves to `http://127.0.0.1:8000/api/*`
 
 ---
 
-## Demo Scenario
+## Getting started
 
-For a reliable demo, search for **`Attention Is All You Need`** or **`Denoising Diffusion Probabilistic Models`** on the homepage:
+Example queries that return full analysis (OpenReview or reference set):
 
-* **Presentation Pitch**: Start on the landing page, showing ECHO's position against low-effort reviews and AI slop.
-* **One-Click Analysis**: Type the query, click "Analyze", and watch the real-time thinking states resolve.
-* **Forensic Inspection**: Explore the dashboard cards (verdict gauge, risk sliders, timelines, D3 collusion graph).
-* **System Health**: Visit the source-health page to show connectivity statuses of the academic APIs.
+**`Attention Is All You Need`**, **`Denoising Diffusion Probabilistic Models`**, **`Position: The role of open source in AI`**
+
+* Search from the dashboard and run **Analyze** to see stylometry, specificity, and collusion results.
+* Open **`/validation`** or `GET /api/benchmark` for confusion matrices and precision/recall on the labeled set.
+* Use the source-health page to confirm OpenReview, arXiv, and Semantic Scholar connectivity.
+
+Queries with no review text on OpenReview return `404` or `422` instead of synthetic reviews.
+
+---
+
+## Detection validation
+
+ECHO ships a **labeled review dataset** (`backend/data/labeled_reviews.json`, n=24):
+
+| Engine | Threshold | What it catches |
+|--------|-----------|-----------------|
+| Stylometry | cosine > **0.80** | Copy-paste / same-voice paper↔review similarity |
+| Specificity | composite < **6.0** | Generic academic filler, low entropy |
+
+Run evaluation:
+
+```bash
+cd backend
+set USE_FALLBACK_EMBEDDER=true
+pytest tests/ -q
+python -c "from evaluation.benchmark import run_labeled_benchmark; import json; print(json.dumps(run_labeled_benchmark(), indent=2))"
+```
+
+Or visit **`/validation`** in the frontend while the API is running.
+
+### External spot-check (held-out, n=5)
+
+Reviews in `backend/data/external_spotcheck.json` are **not** used to tune thresholds. Each entry cites an OpenReview-style source; manual labels were applied independently, then compared to ECHO output.
+
+```bash
+GET /api/benchmark/spotcheck
+GET /api/benchmark?full=true   # calibration + spot-check + embedder mode
+```
+
+See **`DEMO.md`** for the 2-minute live demo script and **`docs/SPOTCHECK_SLIDE.md`** for a one-slide summary.
+
+### Deployed vs local embedder
+
+| Environment | Stylometry embedder |
+|-------------|---------------------|
+| Render (`RENDER=true`) | `lexical_fallback` (blake2b bag-of-words, 384-d) |
+| Local (default) | `sentence-transformers` all-MiniLM-L6-v2 when available |
+
+Specificity does not use the embedder. Compare stylometry scores only within the same mode.
+
+### Honest false-positive rate
+
+* **Stylometry**: Reviewers in narrow subfields may share jargon with the abstract → elevated cosine similarity. ECHO is **triage**, not an automated verdict.
+* **Specificity**: Short but substantive reviews can score below threshold; chairs should read flagged text.
+* **Collusion**: Cross-paper rings require venue-wide OpenReview data; single-paper graphs are intentionally limited.
 
 ---
 
@@ -188,16 +239,14 @@ Verified commit: `c332c82897083c39b16d64255f27671ef914a5b6`
 
 ## API Endpoints
 
-* `POST /api/analyze` - Queries metadata, runs stylometry, specificity, and collusion checks.
-* `GET /api/sources/health` - Retrieves live status for OpenReview, arXiv, and Semantic Scholar.
-* `POST /api/export/pdf` - Returns a base64 encoded PDF report.
+* `POST /api/analyze` - Runs stylometry, specificity, and collusion on **real** review text (404/422 if unavailable).
+* `GET /api/benchmark` - Full report by default (`?full=true`): calibration matrices, held-out spot-check, embedder mode. Use `?full=false` for calibration only.
+* `GET /api/benchmark/spotcheck` - Held-out OpenReview-style spot-check only.
+* `GET /api/sources/health` - Live status for OpenReview, arXiv, and Semantic Scholar.
+* `POST /api/export/pdf` - Base64 PDF forensic report.
 
 ---
 
-## Evaluation Focus
+## Why ECHO
 
-We built ECHO because trust in academic peer review is decaying under cheap AI text. It runs actual, deterministic stylometry and graph math in the backend rather than using mocked frontend wrappers. It gives chairs clear, visual, and exportable evidence. It doesn't break if a third-party API is rate-limited or offline. Ultimately, it makes coordination and low-effort review patterns visible so human editors can make better decisions.
-
----
-
-Designed like a serious AI integrity product.
+Trust in peer review is under pressure from volume and cheap AI-generated text. ECHO runs deterministic stylometry and graph analysis on real review text, surfaces risk visually, and exports evidence for human follow-up. It degrades gracefully when external APIs or embedding models are unavailable.
