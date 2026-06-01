@@ -20,10 +20,10 @@ from analyzers.stylometry import analyze_stylometry
 from analyzers.specificity import analyze_specificity
 from analyzers.collusion import build_collusion_graph
 from evaluation.benchmark import (
-    run_external_spotcheck,
     run_full_validation_report,
     run_labeled_benchmark,
 )
+from evaluation.spotcheck import run_external_spotcheck
 from models.embedder import get_embedder_mode
 from storage import get_stats, init_db, list_recent_analyses, save_analysis
 

@@ -106,7 +106,7 @@ ECHO
 ## Tech Stack
 
 Frontend:
-* **Core Framework**: Next.js 15 (App Router) & React 19.2.4.
+* **Core Framework**: Next.js 16 (App Router) & React 19.2.4.
 * **Styling**: Tailwind CSS v4.
 * **Data Visualization**: Recharts & D3.
 * **Animations**: Framer Motion.
@@ -225,15 +225,13 @@ Specificity does not use the embedder. Compare stylometry scores only within the
 Verified with:
 ```bash
 npm run lint
-npx next build --webpack
+npx next build
 ```
 
 Smoke checks:
 * `GET  /` -> 200
 * `POST /api/analyze` -> 200
 * `GET  /api/sources/health` -> 200
-
-Verified commit: `c332c82897083c39b16d64255f27671ef914a5b6`
 
 ---
 

@@ -148,7 +148,7 @@ function Navbar() {
       </nav>
       <div className="nav-actions">
         <Button asChild variant="secondary" size="sm">
-          <Link href="https://github.com/Geetansh-12/ECHO" target="_blank">
+          <Link href="https://github.com/gargee-508/Echo" target="_blank">
             <Code2 size={15} />
             GitHub
           </Link>
